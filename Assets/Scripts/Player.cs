@@ -14,35 +14,35 @@ using UnityEngine;
 public class Player : MonoBehaviour
 {
 
-    public GameObject[] weapons;
-    public bool[] hasWeapon;
-
     // 캐릭터 이동 속도 설정 
     public float moveSpeed = 5f;
     PlayerController controller;
     Animator anim;    
     bool wDown;
-    bool fDown;
-    bool iDown;
-    bool isFireReady;
 
-    float fireDelay;
 
-    
-    // 가까이 있는 아이템 변수 
-    GameObject nearObject;
-    Weapon equipWeapon;
+    // 총알 프리팹
+    public GameObject bullet;
+
+    // 총구 트랜스폼
+    public Transform muzzle;
+
+    // 카메라
+    private Camera camera;
+
+    // 방향
+    private Vector3 direction;
 
 
     void Awake()
     {
         anim = GetComponentInChildren<Animator>();
-        equipWeapon = weapons[0].GetComponent<Weapon>();
     }
     // Start is called before the first frame update
     void Start()
     {
         controller = GetComponent<PlayerController>();
+        this.camera = Camera.main;
     }
 
     // Update is called once per frame
@@ -55,48 +55,34 @@ public class Player : MonoBehaviour
         controller.Move(moveVelocity);
 
         anim.SetBool("isRun", moveVelocity != Vector3.zero);
-        anim.SetBool("isWalk", wDown);
 
         transform.LookAt(transform.position + moveVelocity);
-
-        GetInput();
-        Interaction();
         Attack();
     }
 
-    void GetInput() {
-        iDown = Input.GetButtonDown("interaction");
-        fDown = Input.GetButtonDown("Fire1");
-    }
-
-    // 상호 작용 관련 메소드 
-    void Interaction() {
-        if(iDown && nearObject != null) {
-            if(nearObject.tag == "Weapon") {
-                Item item = nearObject.GetComponent<Item>();
-                int weaponIndex = item.value;
-                hasWeapon[weaponIndex] = true;
-
-                Destroy(nearObject);
-            }
-        } 
-    }
-
     void Attack() {
-        equipWeapon.Use();
-        anim.SetTrigger("doshot");
-    }
+        //마우스 왼 클릭
+        if (Input.GetMouseButtonDown(0)) {
+            // 광선 충돌체 정보 
+            RaycastHit hit;
 
 
-    private void OnTriggerStay(Collider other) {
-        if(other.tag == "Weapon") {nearObject = other.gameObject;}
+            // 마우스 포인터가 바닥에서 어디에 위치해 있는지 알아온다.
+            if (Physics.Raycast(camera.ScreenPointToRay(Input.mousePosition), out hit))
+            {
+                // 오브젝트의 방향을 마우스 클릭한 곳으로 지정
+                this.direction = (hit.point - this.transform.position);
+                this.direction.y = this.transform.position.y;
+                this.transform.forward = this.direction;
 
-        Debug.Log(nearObject.name);
-    }
+                // 총알 생성.
+                GameObject bulletGO = Instantiate(this.bullet);
 
-    private void OnTriggerExit(Collider other) {
-        if(other.tag == "Weapon") {
-            nearObject = null;
+                // 총알 위치와 각도를 총구와 같게 한다.
+                bulletGO.transform.position = this.muzzle.transform.position;
+                bulletGO.transform.rotation = this.muzzle.transform.rotation;
+            }
         }
     }
+    
 }
