@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 
@@ -13,16 +14,30 @@ using UnityEngine;
 public class Player : MonoBehaviour
 {
 
+    public GameObject[] weapons;
+    public bool[] hasWeapon;
+
     // 캐릭터 이동 속도 설정 
     public float moveSpeed = 5f;
     PlayerController controller;
-    Animator anim;
+    Animator anim;    
     bool wDown;
+    bool fDown;
+    bool iDown;
+    bool isFireReady;
+
+    float fireDelay;
+
+    
+    // 가까이 있는 아이템 변수 
+    GameObject nearObject;
+    Weapon equipWeapon;
 
 
     void Awake()
     {
         anim = GetComponentInChildren<Animator>();
+        equipWeapon = weapons[0].GetComponent<Weapon>();
     }
     // Start is called before the first frame update
     void Start()
@@ -43,5 +58,45 @@ public class Player : MonoBehaviour
         anim.SetBool("isWalk", wDown);
 
         transform.LookAt(transform.position + moveVelocity);
+
+        GetInput();
+        Interaction();
+        Attack();
+    }
+
+    void GetInput() {
+        iDown = Input.GetButtonDown("interaction");
+        fDown = Input.GetButtonDown("Fire1");
+    }
+
+    // 상호 작용 관련 메소드 
+    void Interaction() {
+        if(iDown && nearObject != null) {
+            if(nearObject.tag == "Weapon") {
+                Item item = nearObject.GetComponent<Item>();
+                int weaponIndex = item.value;
+                hasWeapon[weaponIndex] = true;
+
+                Destroy(nearObject);
+            }
+        } 
+    }
+
+    void Attack() {
+        equipWeapon.Use();
+        anim.SetTrigger("doshot");
+    }
+
+
+    private void OnTriggerStay(Collider other) {
+        if(other.tag == "Weapon") {nearObject = other.gameObject;}
+
+        Debug.Log(nearObject.name);
+    }
+
+    private void OnTriggerExit(Collider other) {
+        if(other.tag == "Weapon") {
+            nearObject = null;
+        }
     }
 }
